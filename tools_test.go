@@ -1,10 +1,12 @@
 package toolkit
 
 import (
+	"fmt"
 	"image"
 	"image/png"
 	"io"
 	"mime/multipart"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -155,7 +157,6 @@ var slugifyTests = []struct {
 	{name: "complex string", s: "hello there 123 $%^!&&*&!%^!", expected: "hello-there-123", errorExpected: false},
 	{name: "non-english string", s: "こんにちは", expected: "", errorExpected: true},
 	{name: "roman + non-english string", s: "hello there こんにちは 1234", expected: "hello-there-1234", errorExpected: false},
-	
 }
 
 func TestTools_Slugify(t *testing.T) {
@@ -168,5 +169,21 @@ func TestTools_Slugify(t *testing.T) {
 		if !e.errorExpected && e.expected != s {
 			t.Errorf("%s: Expected %s but got %s", e.name, e.expected, s)
 		}
+	}
+}
+
+func TestTools_DownloadStaticFile(t *testing.T) {
+	var tools Tools
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/", nil)
+	tools.DownloadStaticFile(rr, req, "./testdata", "pic.jpg", "love.jpg")
+	res := rr.Result()
+	defer res.Body.Close()
+	if res.Header["Content-Length"][0] != "61096" {
+		t.Error("Expected the soze to be ", res.Header["Content-Length"][0])
+	}
+	fmt.Println(res.Header["Content-Disposition"][0])
+	if res.Header["Content-Disposition"][0] != "attachment; filename\"love.jpg\"" {
+		t.Error("wrong content-disposition")
 	}
 }
